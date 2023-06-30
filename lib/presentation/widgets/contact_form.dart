@@ -1,4 +1,6 @@
+import 'package:contact_form/logic/contact_form_service.dart';
 import 'package:contact_form/presentation/styles/style_constants.dart';
+
 import 'package:flutter/material.dart';
 
 import 'package:email_validator/email_validator.dart';
@@ -12,6 +14,51 @@ class ContactForm extends StatefulWidget {
 
 class _ContactFormState extends State<ContactForm> {
   final formKey = GlobalKey<FormState>();
+  bool isSending = false;
+  String? errorMessage;
+  String? successMessage;
+  TextEditingController nameTextController = TextEditingController();
+  TextEditingController emailTextController = TextEditingController();
+  TextEditingController messageTextController = TextEditingController();
+
+  void sendForm() async {
+    if(formKey.currentState!.validate()){
+      setState(() {
+      isSending = true;
+      errorMessage = null;
+      successMessage = null;
+    });
+
+    var name = nameTextController.text;
+    var email = emailTextController.text;
+    var message = messageTextController.text;
+
+    var contactFormService = ContactFormService();
+
+    var isSuccess = await contactFormService.submitForm(
+      name: name,
+      email: email,
+      message: message,
+    );
+
+    if (isSuccess) {
+      setState(() {
+        successMessage = 'Your message was successfully sent!';
+      });
+      nameTextController.clear();
+      emailTextController.clear();
+      messageTextController.clear();
+    } else {
+      setState(() {
+        errorMessage = 'Something went wrong. Please try again.';
+      });
+    }
+
+    setState(() {
+      isSending = false;
+    });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +80,7 @@ class _ContactFormState extends State<ContactForm> {
       body: Padding(
         padding: const EdgeInsets.only(top: 10),
         child: SizedBox(
-          height: 400,
+          height: 390,
           child: Column(
             children: [
               Form(
@@ -42,6 +89,7 @@ class _ContactFormState extends State<ContactForm> {
                 child: Expanded(
                   child: ListView(
                     children: [
+                      // Text field for name
                       Padding(
                         padding: const EdgeInsets.only(left: 15, right: 20, top: 30, bottom: 0),
                         child: ListTile(
@@ -65,6 +113,8 @@ class _ContactFormState extends State<ContactForm> {
                           ),
                         ),
                       ),
+
+                      // Text field for email
                       Padding(
                         padding: const EdgeInsets.only(left: 15, right: 20, top: 30, bottom: 0),
                         child: ListTile(
@@ -80,9 +130,6 @@ class _ContactFormState extends State<ContactForm> {
                               hintStyle: hintTextStyle,
                             ),
                             validator: (value) {
-                              var emailRegexp = RegExp(
-                                r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
-                              );
                               if (value?.isEmpty ?? true) {
                                 return 'Provide your email!';
                               }
@@ -94,6 +141,8 @@ class _ContactFormState extends State<ContactForm> {
                           ),
                         ),
                       ),
+
+                      // Text field for message
                       Padding(
                         padding: const EdgeInsets.only(left: 15, right: 20, top: 30, bottom: 0),
                         child: ListTile(
@@ -108,6 +157,8 @@ class _ContactFormState extends State<ContactForm> {
                               hintText: "Message",
                               hintStyle: hintTextStyle,
                             ),
+                            minLines: 1,
+                            maxLines: 6,
                             validator: (value) {
                               if (value?.isEmpty ?? true) {
                                 return 'Input your message!';
@@ -122,12 +173,12 @@ class _ContactFormState extends State<ContactForm> {
                 )
               ),
               Padding(
-                padding: const EdgeInsets.only(top: 5, left: 35, right: 35),
+                padding: const EdgeInsets.only(left: 35, right: 35),
                 child: SizedBox(
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: isSending ? null : sendForm,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: submittButtonColor,
                       padding: const EdgeInsets.all(0),
@@ -139,14 +190,35 @@ class _ContactFormState extends State<ContactForm> {
                       width: double.infinity,
                       height: 50,
                       alignment: Alignment.center,
-                      child: Text(
+                      child: isSending
+                      ? Text(
+                        'Please wait',
+                        style: sendButtonTextStyle,
+                      )
+                      : Text(
                         'Send',
                         style: sendButtonTextStyle,
                       ),
                     ),
                   ),
                 ),
-              )
+              ),
+              if (errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    errorMessage!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              if (successMessage != null)
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    successMessage!,
+                    style: const TextStyle(color: Colors.green),
+                  ),
+                ),
             ]
           ),
         ),
